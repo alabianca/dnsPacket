@@ -6,23 +6,38 @@ import (
 	"strings"
 )
 
-const (
-	FlagsQuery               = 0 << 15
-	FlagsResponse            = 1 << 15
-	FlagsOpCodeStandardQuery = 0 << 11
-	FlagsOpCodeInverseQuery  = 1 << 11
-	FlagsOpCodeServerStatus  = 1 << 12
-	FlagsAuthoritativeAnswer = 1 << 10
-	FlagsTruncation          = 1 << 9
-	FlagsRecurionDesired     = 1 << 8
-	FlagsRecursionAvailable  = 1 << 7
-)
+/*
++---------------------+
+| Header              |
++---------------------+
+| Question            | Question for the name server
++---------------------+
+| Answer              | Answers to the question
++---------------------+
+| Authority           | Not used in this project
++---------------------+
+| Additional          | Not used in this project
++---------------------+
+*/
 
-type Question struct {
-	Qname  string
-	Qtype  string
-	Qclass string
-}
+/*
+DNS HEADERS
+
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
++--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+| ID                                            |
++--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+|QR| Opcode |AA|TC|RD|RA| Z | RCODE             |
++--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+| QDCOUNT                                       |
++--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+| ANCOUNT                                       |
++--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+| NSCOUNT                                       |
++--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+| ARCOUNT                                       |
++--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+*/
 
 type DNSPacket struct {
 	Type      string
@@ -50,13 +65,13 @@ func Encode(dnsPacket *DNSPacket) []byte {
 		packetType = 1
 	}
 
-	packetID, _ := FromIntToBytes(uint16(dnsPacket.ID))
+	packetID, _ := fromIntToBytes(uint16(dnsPacket.ID))
 	params := packetType | dnsPacket.Opcode | dnsPacket.Flags
-	queryParms, _ := FromIntToBytes(uint16(params))
-	qcount, _ := FromIntToBytes(uint16(dnsPacket.Qdcount))
-	ancount, _ := FromIntToBytes(uint16(dnsPacket.Ancount))
-	nscount, _ := FromIntToBytes(uint16(dnsPacket.Nscount))
-	arcount, _ := FromIntToBytes(uint16(dnsPacket.Arcount))
+	queryParms, _ := fromIntToBytes(uint16(params))
+	qcount, _ := fromIntToBytes(uint16(dnsPacket.Qdcount))
+	ancount, _ := fromIntToBytes(uint16(dnsPacket.Ancount))
+	nscount, _ := fromIntToBytes(uint16(dnsPacket.Nscount))
+	arcount, _ := fromIntToBytes(uint16(dnsPacket.Arcount))
 
 	packet = append(packet, packetID...)
 	packet = append(packet, queryParms...)
@@ -73,7 +88,7 @@ func Encode(dnsPacket *DNSPacket) []byte {
 
 }
 
-func FromIntToBytes(num uint16) ([]byte, error) {
+func fromIntToBytes(num uint16) ([]byte, error) {
 	buffer := new(bytes.Buffer)
 
 	err := binary.Write(buffer, binary.BigEndian, num)
@@ -107,8 +122,8 @@ func encodeQuestion(q Question) []byte {
 	question := make([]byte, 0)
 
 	name := encodeQname(q.Qname)
-	qtype, _ := FromIntToBytes(uint16(1))  //hard coded
-	qclass, _ := FromIntToBytes(uint16(1)) //hard coded
+	qtype, _ := fromIntToBytes(uint16(1))  //hard coded
+	qclass, _ := fromIntToBytes(uint16(1)) //hard coded
 
 	question = append(question, name...)
 	question = append(question, qtype...)
