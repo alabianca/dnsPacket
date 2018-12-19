@@ -43,6 +43,7 @@ type DNSPacket struct {
 	Type       string
 	ID         uint16
 	Opcode     int
+	Z          int
 	Rcode      int
 	Flags      int
 	Qdcount    uint16
@@ -67,6 +68,90 @@ func (dns *DNSPacket) AddQuestion(name string, qclass int, qtype int) *Question 
 	return &question
 }
 
+func (dns *DNSPacket) AddAnswer(name string, aclass int, atype int, ttl uint32, dataLength int, data []byte) *Answer {
+	answer := Answer{
+		Name:     name,
+		Class:    aclass,
+		Type:     atype,
+		TTL:      ttl,
+		RdLength: dataLength,
+	}
+	answer.Data = make([]byte, len(data))
+	for i := range data {
+		answer.Data[i] = data[i]
+	}
+
+	dns.Answers = append(dns.Answers, answer)
+
+	return &answer
+}
+
+func (dns *DNSPacket) IsAuthoritativeAnswer() bool {
+	if (dns.Flags & AuthoritativeAnswerMask) > 0 {
+		return true
+	}
+
+	return false
+}
+
+func (dns *DNSPacket) IsTruncated() bool {
+	if (dns.Flags & TruncationMask) > 0 {
+		return true
+	}
+
+	return false
+}
+
+func (dns *DNSPacket) IsRecursionDesired() bool {
+	if (dns.Flags & RecursionDesiredMask) > 0 {
+		return true
+	}
+
+	return false
+}
+
+func (dns *DNSPacket) IsRecursionAvailable() bool {
+	if (dns.Flags & RecursionAvailableMask) > 0 {
+		return true
+	}
+
+	return false
+}
+
+func (dns DNSPacket) String() string {
+	buf := new(bytes.Buffer)
+
+	buf.WriteString(fmt.Sprintf("Type: %s\n", dns.Type))
+	buf.WriteString(fmt.Sprintf("ID: %d\n", dns.ID))
+	buf.WriteString(fmt.Sprintf("Opcode: %d\n", dns.Opcode))
+	buf.WriteString(fmt.Sprintf("Z: %d\n", dns.Z))
+	buf.WriteString(fmt.Sprintf("Rcode: %d\n", dns.Rcode))
+	buf.WriteString(fmt.Sprintf("Flags:\n"))
+	buf.WriteString(fmt.Sprintf(" --AA: %t\n", dns.IsAuthoritativeAnswer()))
+	buf.WriteString(fmt.Sprintf(" --TC: %t\n", dns.IsTruncated()))
+	buf.WriteString(fmt.Sprintf(" --RD: %t\n", dns.IsRecursionDesired()))
+	buf.WriteString(fmt.Sprintf(" --RA: %t\n", dns.IsRecursionAvailable()))
+	buf.WriteString(fmt.Sprintf("Question Count: %d\n", dns.Qdcount))
+	buf.WriteString(fmt.Sprintf("Answer Count: %d\n", dns.Ancount))
+	buf.WriteString(fmt.Sprintf("NS Count: %d\n", dns.Nscount))
+	buf.WriteString(fmt.Sprintf("AR Count: %d\n", dns.Arcount))
+	buf.WriteString(fmt.Sprintf("Questions:\n"))
+
+	for i, q := range dns.Questions {
+		buf.WriteString(fmt.Sprintf("%d - %s\n", i, q))
+	}
+
+	buf.WriteString(fmt.Sprintf("Answers:\n"))
+
+	for i, a := range dns.Answers {
+		buf.WriteString(fmt.Sprintf("%d - %s\n", i, a))
+	}
+
+	buf.WriteString("\n")
+
+	return buf.String()
+}
+
 func Encode(dnsPacket *DNSPacket) []byte {
 	packet := make([]byte, 0)
 	isQuery := dnsPacket.Type == "query"
@@ -78,7 +163,7 @@ func Encode(dnsPacket *DNSPacket) []byte {
 	}
 
 	packetID, _ := fromIntToBytes(uint16(dnsPacket.ID))
-	params := packetType | dnsPacket.Opcode | dnsPacket.Flags
+	params := packetType | dnsPacket.Opcode | dnsPacket.Flags | dnsPacket.Z | dnsPacket.Rcode
 	queryParms, _ := fromIntToBytes(uint16(params))
 	qcount, _ := fromIntToBytes(uint16(dnsPacket.Qdcount))
 	ancount, _ := fromIntToBytes(uint16(dnsPacket.Ancount))
@@ -112,7 +197,7 @@ func Decode(packet []byte) *DNSPacket {
 
 	isQuery := queryParams & DNSQuery
 	opcode := (queryParams << 1) >> 12
-	flags := (queryParams & FlagsMask) >> 8
+	flags := queryParams & FlagsMask
 	z := (queryParams & ZMask) >> 4
 	rcode := (queryParams & RcodeMask)
 
@@ -123,19 +208,6 @@ func Decode(packet []byte) *DNSPacket {
 		queryType = "response"
 	}
 
-	fmt.Printf("Id: %d\n", id)
-	fmt.Printf("query: %d\n", queryParams)
-	fmt.Printf("isQuery: %d\n", isQuery)
-	fmt.Printf("opcode: %d\n", decodeOpcode(int(opcode)))
-
-	fmt.Printf("Flags: %d\n", flags)
-	fmt.Printf("Z: %d\n", z)
-	fmt.Printf("rcode: %d\n", decodeRcode(int(rcode)))
-	fmt.Printf("qdCount: %d\n", qdCount)
-	fmt.Printf("anCount: %d\n", anCount)
-	fmt.Printf("nsCount: %d\n", nsCount)
-	fmt.Printf("arCount: %d\n", arCount)
-
 	dnsPacket := DNSPacket{
 		Type:    queryType,
 		ID:      id,
@@ -145,6 +217,8 @@ func Decode(packet []byte) *DNSPacket {
 		Ancount: anCount,
 		Nscount: nsCount,
 		Arcount: arCount,
+		Rcode:   int(rcode),
+		Z:       int(z),
 	}
 
 	//process questions
@@ -159,16 +233,35 @@ func Decode(packet []byte) *DNSPacket {
 
 		qtype := decodePart(packet, qTypeStart, qTypeEnd)
 		qclass := decodePart(packet, qClassStart, qClassEnd)
-		//qclass := binary.BigEndian.Uint16(packet[qClassStart:qClassEnd])
-		startOfQuestions = n + 4
+		startOfQuestions = startOfQuestions + n + 4
 
 		dnsPacket.AddQuestion(qname, int(qclass), int(qtype))
 
 	}
 
 	//process answers
-	//startOfAnswers := startOfQuestions
+	startOfAnswers := startOfQuestions
 	for i := 0; i < int(anCount); i++ {
+		compressedAnswerName := decodePart(packet, startOfAnswers, startOfAnswers+2)
+		offset := compressedAnswerName & CompressedAnswerMask
+		answerName, _ := decodeQname(packet[offset:])
+
+		startOfAnswerType := startOfAnswers + 2
+		endOfAnswerType := startOfAnswerType + 2
+		startOfAnswerClass := endOfAnswerType
+		endOfAnswerClass := startOfAnswerClass + 2
+		startOfTTL := endOfAnswerClass
+		endOfTTL := startOfTTL + 4
+		startOfDataLength := endOfTTL
+		endOfDataLength := startOfDataLength + 2
+		startOfData := endOfDataLength
+		anType := decodePart(packet, startOfAnswerType, endOfAnswerType)
+		anClass := decodePart(packet, startOfAnswerClass, endOfAnswerClass)
+		ttl := binary.BigEndian.Uint32(packet[startOfTTL:endOfTTL])
+		dataLength := decodePart(packet, startOfDataLength, endOfDataLength)
+		endOfData := startOfData + int(dataLength)
+
+		dnsPacket.AddAnswer(answerName, int(anClass), int(anType), ttl, int(dataLength), packet[startOfData:endOfData])
 
 	}
 

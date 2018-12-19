@@ -28,12 +28,16 @@ const (
 	RcodeNameError      = 3
 	RcodeNotImplemented = 4
 	RcodeRefused        = 5
-	RcodeMask           = 15
+	RcodeMask           = 0xF
 )
 
 //Qclass
 const (
 	QclassIN = 1
+)
+
+const (
+	CompressedAnswerMask = 0x3FFF
 )
 
 //query params flags
@@ -45,6 +49,10 @@ const (
 	FlagsTruncation          = 1 << 9
 	FlagsRecurionDesired     = 1 << 8
 	FlagsRecursionAvailable  = 1 << 7
-	FlagsMask                = 3840
-	ZMask                    = 112
+	FlagsMask                = 0xF00
+	ZMask                    = 0x70
+	AuthoritativeAnswerMask  = 0x400
+	TruncationMask           = 0x200
+	RecursionDesiredMask     = 0x100
+	RecursionAvailableMask   = 0x80
 )

@@ -2,6 +2,7 @@ package dnsPacket
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 )
 
@@ -9,6 +10,14 @@ type Question struct {
 	Qname  string
 	Qtype  int
 	Qclass int
+}
+
+func (q Question) String() string {
+	buf := new(bytes.Buffer)
+
+	buf.WriteString(fmt.Sprintf("Name: %s Type: %d Class: %d", q.Qname, q.Qtype, q.Qclass))
+
+	return buf.String()
 }
 
 func encodeQname(qname string) []byte {
