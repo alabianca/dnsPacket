@@ -203,9 +203,9 @@ func Decode(packet []byte) *DNSPacket {
 
 	var queryType string
 	if isQuery > 0 {
-		queryType = "query"
-	} else {
 		queryType = "response"
+	} else {
+		queryType = "query"
 	}
 
 	dnsPacket := DNSPacket{
