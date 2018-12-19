@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"strings"
 )
 
 /*
@@ -56,8 +55,16 @@ type DNSPacket struct {
 	Additional []byte
 }
 
-func (dns *DNSPacket) AddQuestion(q Question) {
-	dns.Questions = append(dns.Questions, q)
+func (dns *DNSPacket) AddQuestion(name string, qclass int, qtype int) *Question {
+	question := Question{
+		Qname:  name,
+		Qclass: qclass,
+		Qtype:  qtype,
+	}
+
+	dns.Questions = append(dns.Questions, question)
+
+	return &question
 }
 
 func Encode(dnsPacket *DNSPacket) []byte {
@@ -95,6 +102,7 @@ func Encode(dnsPacket *DNSPacket) []byte {
 
 func Decode(packet []byte) *DNSPacket {
 
+	//header values
 	id := decodePart(packet, 0, 2)
 	queryParams := decodePart(packet, 2, 4)
 	qdCount := decodePart(packet, 4, 6)
@@ -139,6 +147,7 @@ func Decode(packet []byte) *DNSPacket {
 		Arcount: arCount,
 	}
 
+	//process questions
 	startOfQuestions := 12
 	for i := 0; i < int(qdCount); i++ {
 		qname, n := decodeQname(packet[startOfQuestions:])
@@ -147,15 +156,20 @@ func Decode(packet []byte) *DNSPacket {
 		qTypeEnd := qTypeStart + 2
 		qClassStart := qTypeEnd
 		qClassEnd := qTypeEnd + 2
-		fmt.Println(packet[qClassStart:qClassEnd])
+
 		qtype := decodePart(packet, qTypeStart, qTypeEnd)
 		qclass := decodePart(packet, qClassStart, qClassEnd)
 		//qclass := binary.BigEndian.Uint16(packet[qClassStart:qClassEnd])
 		startOfQuestions = n + 4
 
-		fmt.Printf("Name: %s\n", qname)
-		fmt.Printf("QType: %d\n", qtype)
-		fmt.Printf("QClass: %d\n", qclass)
+		dnsPacket.AddQuestion(qname, int(qclass), int(qtype))
+
+	}
+
+	//process answers
+	//startOfAnswers := startOfQuestions
+	for i := 0; i < int(anCount); i++ {
+
 	}
 
 	return &dnsPacket
@@ -224,58 +238,4 @@ func decodeRcode(rcode int) int {
 
 func decodePart(packet []byte, start int, end int) uint16 {
 	return binary.BigEndian.Uint16(packet[start:end])
-}
-
-func encodeQname(qname string) []byte {
-	name := make([]byte, 0)
-
-	sections := strings.Split(qname, ".")
-
-	for i := 0; i < len(sections); i++ {
-		length := len(sections[i])
-
-		name = append(name, byte(length))
-
-		for j := 0; j < length; j++ {
-			name = append(name, byte(sections[i][j]))
-		}
-	}
-	name = append(name, byte(0))
-	return name
-}
-
-func decodeQname(qname []byte) (string, int) {
-	name := new(bytes.Buffer)
-	start := 0
-
-	for {
-		labelSize := int(qname[start])
-		label := qname[start+1 : labelSize+start+1]
-		start = start + labelSize + 1
-
-		name.WriteString(string(label))
-
-		if qname[start] == 0 {
-			start++
-			break
-		}
-
-		name.WriteString(".")
-	}
-
-	return name.String(), start
-}
-
-func encodeQuestion(q Question) []byte {
-	question := make([]byte, 0)
-
-	name := encodeQname(q.Qname)
-	qtype, _ := fromIntToBytes(uint16(1))  //hard coded
-	qclass, _ := fromIntToBytes(uint16(1)) //hard coded
-
-	question = append(question, name...)
-	question = append(question, qtype...)
-	question = append(question, qclass...)
-
-	return question
 }

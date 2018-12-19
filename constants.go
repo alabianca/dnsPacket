@@ -31,6 +31,11 @@ const (
 	RcodeMask           = 15
 )
 
+//Qclass
+const (
+	QclassIN = 1
+)
+
 //query params flags
 const (
 	FlagsOpCodeStandardQuery = 0 << 11
