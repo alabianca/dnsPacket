@@ -64,8 +64,8 @@ func encodeQuestion(q Question) []byte {
 	question := make([]byte, 0)
 
 	name := encodeQname(q.Qname)
-	qtype, _ := fromIntToBytes(uint16(1))  //hard coded
-	qclass, _ := fromIntToBytes(uint16(1)) //hard coded
+	qtype, _ := fromIntToBytes(uint16(q.Qtype))
+	qclass, _ := fromIntToBytes(uint16(q.Qclass))
 
 	question = append(question, name...)
 	question = append(question, qtype...)
