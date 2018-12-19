@@ -220,7 +220,6 @@ func Decode(packet []byte) *DNSPacket {
 		Rcode:   int(rcode),
 		Z:       int(z),
 	}
-
 	//process questions
 	startOfQuestions := 12
 	for i := 0; i < int(qdCount); i++ {
@@ -241,12 +240,26 @@ func Decode(packet []byte) *DNSPacket {
 
 	//process answers
 	startOfAnswers := startOfQuestions
+
 	for i := 0; i < int(anCount); i++ {
 		compressedAnswerName := decodePart(packet, startOfAnswers, startOfAnswers+2)
-		offset := compressedAnswerName & CompressedAnswerMask
-		answerName, _ := decodeQname(packet[offset:])
+		//fmt.Printf("compressed: %d\n", compressedAnswerName)
+		var offset uint16
+		var startOfAnswerType int
+		var answerName string
+		if dnsPacket.Qdcount <= 0 {
+			offset = uint16(startOfAnswers)
+			answer, n := decodeQname(packet[offset:])
+			startOfAnswerType = startOfAnswers + n
+			answerName = answer
 
-		startOfAnswerType := startOfAnswers + 2
+		} else {
+			offset = compressedAnswerName & CompressedAnswerMask
+			answer, _ := decodeQname(packet[offset:])
+			startOfAnswerType = startOfAnswers + 2
+			answerName = answer
+		}
+
 		endOfAnswerType := startOfAnswerType + 2
 		startOfAnswerClass := endOfAnswerType
 		endOfAnswerClass := startOfAnswerClass + 2
