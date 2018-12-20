@@ -56,6 +56,7 @@ type DNSPacket struct {
 	Additional []byte
 }
 
+//Add a Question to the DNS Packet
 func (dns *DNSPacket) AddQuestion(name string, qclass int, qtype int) *Question {
 	question := Question{
 		Qname:  name,
@@ -68,6 +69,7 @@ func (dns *DNSPacket) AddQuestion(name string, qclass int, qtype int) *Question 
 	return &question
 }
 
+//Add an Answer to the DNS Packet
 func (dns *DNSPacket) AddAnswer(name string, aclass int, atype int, ttl uint32, dataLength int, data []byte) *Answer {
 	answer := Answer{
 		Name:     name,
@@ -86,6 +88,7 @@ func (dns *DNSPacket) AddAnswer(name string, aclass int, atype int, ttl uint32, 
 	return &answer
 }
 
+//Check the AA flag of the DNS Packet
 func (dns *DNSPacket) IsAuthoritativeAnswer() bool {
 	if (dns.Flags & AuthoritativeAnswerMask) > 0 {
 		return true
@@ -94,6 +97,7 @@ func (dns *DNSPacket) IsAuthoritativeAnswer() bool {
 	return false
 }
 
+//Check the TC flag of the DNS Packet
 func (dns *DNSPacket) IsTruncated() bool {
 	if (dns.Flags & TruncationMask) > 0 {
 		return true
@@ -102,6 +106,7 @@ func (dns *DNSPacket) IsTruncated() bool {
 	return false
 }
 
+//Check the RD flag of the DNS Packet
 func (dns *DNSPacket) IsRecursionDesired() bool {
 	if (dns.Flags & RecursionDesiredMask) > 0 {
 		return true
@@ -110,6 +115,7 @@ func (dns *DNSPacket) IsRecursionDesired() bool {
 	return false
 }
 
+//Check the RA flag of the DNS Packet
 func (dns *DNSPacket) IsRecursionAvailable() bool {
 	if (dns.Flags & RecursionAvailableMask) > 0 {
 		return true
@@ -152,6 +158,7 @@ func (dns DNSPacket) String() string {
 	return buf.String()
 }
 
+//Encode a DNS packet and get the resulting bytes back
 func Encode(dnsPacket *DNSPacket) []byte {
 	packet := make([]byte, 0)
 	isQuery := dnsPacket.Type == "query"
@@ -185,6 +192,7 @@ func Encode(dnsPacket *DNSPacket) []byte {
 
 }
 
+//Decode a packet and get an instance of DNS packet back
 func Decode(packet []byte) *DNSPacket {
 
 	//header values
@@ -223,15 +231,8 @@ func Decode(packet []byte) *DNSPacket {
 	//process questions
 	startOfQuestions := 12
 	for i := 0; i < int(qdCount); i++ {
-		qname, n := decodeQname(packet[startOfQuestions:])
+		qname, qtype, qclass, n := decodeQuestion(packet[startOfQuestions:])
 
-		qTypeStart := startOfQuestions + n
-		qTypeEnd := qTypeStart + 2
-		qClassStart := qTypeEnd
-		qClassEnd := qTypeEnd + 2
-
-		qtype := decodePart(packet, qTypeStart, qTypeEnd)
-		qclass := decodePart(packet, qClassStart, qClassEnd)
 		startOfQuestions = startOfQuestions + n + 4
 
 		dnsPacket.AddQuestion(qname, int(qclass), int(qtype))
@@ -242,11 +243,13 @@ func Decode(packet []byte) *DNSPacket {
 	startOfAnswers := startOfQuestions
 
 	for i := 0; i < int(anCount); i++ {
-		compressedAnswerName := decodePart(packet, startOfAnswers, startOfAnswers+2)
-		//fmt.Printf("compressed: %d\n", compressedAnswerName)
+
 		var offset uint16
 		var startOfAnswerType int
 		var answerName string
+
+		//a dns packet could have 0 questions...
+		//in that case the answer name will not be in a compressed format
 		if dnsPacket.Qdcount <= 0 {
 			offset = uint16(startOfAnswers)
 			answer, n := decodeQname(packet[offset:])
@@ -254,25 +257,30 @@ func Decode(packet []byte) *DNSPacket {
 			answerName = answer
 
 		} else {
+			compressedAnswerName := decodePart(packet, startOfAnswers, startOfAnswers+2)
 			offset = compressedAnswerName & CompressedAnswerMask
 			answer, _ := decodeQname(packet[offset:])
 			startOfAnswerType = startOfAnswers + 2
 			answerName = answer
 		}
 
-		endOfAnswerType := startOfAnswerType + 2
+		//calculate bounds for answer parts (answerType,answerClass, TTL, dataLength and Data)
+		endOfAnswerType := startOfAnswerType + 2 //2 bytes for answerType
 		startOfAnswerClass := endOfAnswerType
-		endOfAnswerClass := startOfAnswerClass + 2
+		endOfAnswerClass := startOfAnswerClass + 2 //2 bytes for answerClass
 		startOfTTL := endOfAnswerClass
-		endOfTTL := startOfTTL + 4
+		endOfTTL := startOfTTL + 4 //4 bytes for TTL
 		startOfDataLength := endOfTTL
-		endOfDataLength := startOfDataLength + 2
+		endOfDataLength := startOfDataLength + 2 //2bytes for dataLength
 		startOfData := endOfDataLength
+
 		anType := decodePart(packet, startOfAnswerType, endOfAnswerType)
 		anClass := decodePart(packet, startOfAnswerClass, endOfAnswerClass)
 		ttl := binary.BigEndian.Uint32(packet[startOfTTL:endOfTTL])
 		dataLength := decodePart(packet, startOfDataLength, endOfDataLength)
 		endOfData := startOfData + int(dataLength)
+
+		startOfAnswers = startOfAnswers + endOfData
 
 		dnsPacket.AddAnswer(answerName, int(anClass), int(anType), ttl, int(dataLength), packet[startOfData:endOfData])
 

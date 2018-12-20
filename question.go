@@ -20,6 +20,21 @@ func (q Question) String() string {
 	return buf.String()
 }
 
+func decodeQuestion(packet []byte) (qname string, qtype uint16, qclass uint16, n int) {
+	qname, n = decodeQname(packet)
+
+	qTypeStart := n
+	qTypeEnd := qTypeStart + 2
+	qClassStart := qTypeEnd
+	qClassEnd := qTypeEnd + 2
+
+	qtype = decodePart(packet, qTypeStart, qTypeEnd)
+	qclass = decodePart(packet, qClassStart, qClassEnd)
+
+	return
+
+}
+
 func encodeQname(qname string) []byte {
 	name := make([]byte, 0)
 
@@ -38,6 +53,7 @@ func encodeQname(qname string) []byte {
 	return name
 }
 
+//returns question name and how many bytes read
 func decodeQname(qname []byte) (string, int) {
 	name := new(bytes.Buffer)
 	start := 0
