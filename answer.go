@@ -51,6 +51,10 @@ func (a *Answer) Process() PacketProcessor {
 	switch a.Type {
 	case DNSRecordTypeA:
 		p = &RecordTypeA{}
+
+	case DNSRecordTypeSRV:
+		p = &RecordTypeSRV{}
+
 	default:
 		p = &RecordTypeA{}
 	}
@@ -63,12 +67,4 @@ func (a *Answer) Process() PacketProcessor {
 
 type PacketProcessor interface {
 	Process(Answer)
-}
-
-type RecordTypeA struct {
-	IPv4 string
-}
-
-func (record *RecordTypeA) Process(a Answer) {
-	record.IPv4 = "Hello World"
 }
