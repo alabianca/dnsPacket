@@ -36,6 +36,12 @@ const (
 	QclassIN = 1
 )
 
+//DNS Record Types
+const (
+	DNSRecordTypeA   = 1
+	DNSRecordTypeSRV = 33
+)
+
 const (
 	CompressedAnswerMask = 0x3FFF
 )

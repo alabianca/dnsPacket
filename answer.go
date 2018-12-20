@@ -44,3 +44,31 @@ func (a Answer) String() string {
 
 	return buf.String()
 }
+
+func (a *Answer) Process() PacketProcessor {
+	var p PacketProcessor
+
+	switch a.Type {
+	case DNSRecordTypeA:
+		p = &RecordTypeA{}
+	default:
+		p = &RecordTypeA{}
+	}
+
+	p.Process(*a)
+
+	return p
+
+}
+
+type PacketProcessor interface {
+	Process(Answer)
+}
+
+type RecordTypeA struct {
+	IPv4 string
+}
+
+func (record *RecordTypeA) Process(a Answer) {
+	record.IPv4 = "Hello World"
+}
