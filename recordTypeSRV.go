@@ -25,5 +25,16 @@ func (record *RecordTypeSRV) Process(a Answer) {
 }
 
 func (record *RecordTypeSRV) Encode(a *Answer) []byte {
-	return []byte{}
+	data := make([]byte, 0)
+
+	priorityBytes, _ := fromIntToBytes(record.Priority)
+	weightBytes, _ := fromIntToBytes(record.Weight)
+	portBytes, _ := fromIntToBytes(record.Port)
+
+	data = append(data, priorityBytes...)
+	data = append(data, weightBytes...)
+	data = append(data, portBytes...)
+	data = append(data, encodeQname(record.Target)...)
+
+	return data
 }

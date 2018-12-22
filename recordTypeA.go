@@ -26,7 +26,7 @@ func (record *RecordTypeA) Process(a Answer) {
 }
 
 func (record *RecordTypeA) Encode(a *Answer) []byte {
-	return []byte{}
+	return encodeIpV4(record.IPv4)
 }
 
 func encodeIpV4(ip string) []byte {
