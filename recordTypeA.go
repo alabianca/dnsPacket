@@ -3,6 +3,7 @@ package dnsPacket
 import (
 	"bytes"
 	"strconv"
+	"strings"
 )
 
 type RecordTypeA struct {
@@ -22,6 +23,22 @@ func (record *RecordTypeA) Process(a Answer) {
 	}
 
 	record.IPv4 = buf.String()
+}
+
+func (record *RecordTypeA) Encode(a *Answer) []byte {
+	return []byte{}
+}
+
+func encodeIpV4(ip string) []byte {
+	byteIp := make([]byte, 4)
+	parts := strings.Split(ip, ".")
+
+	for i := range parts {
+		part, _ := strconv.ParseInt(parts[i], 10, 16)
+		byteIp[i] = byte(part)
+	}
+
+	return byteIp
 }
 
 //127.0.0.1

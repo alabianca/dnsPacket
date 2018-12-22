@@ -56,7 +56,7 @@ func (a *Answer) Process() PacketProcessor {
 		p = &RecordTypeSRV{}
 
 	default:
-		p = &RecordTypeA{}
+		p = &RecordTypeDefault{}
 	}
 
 	p.Process(*a)
@@ -65,6 +65,33 @@ func (a *Answer) Process() PacketProcessor {
 
 }
 
+func (a *Answer) Encode(offset int) []byte {
+	answer := make([]byte, 0)
+	//encode the name - should be compressed, but if packet contains 0 questions - we can't compress it
+	var name []byte
+	if offset != 0 {
+		compressed := OffsetMarker | offset
+		name, _ = fromIntToBytes(uint16(compressed))
+	} else { //do not compress the name
+		name = encodeQname(a.Name)
+	}
+
+	aType, _ := fromIntToBytes(uint16(a.Type))
+	aClass, _ := fromIntToBytes(uint16(a.Class))
+	ttl, _ := fromUint32ToBytes(a.TTL)
+	rdLength, _ := fromIntToBytes(uint16(a.RdLength))
+
+	answer = append(answer, name...)
+	answer = append(answer, aType...)
+	answer = append(answer, aClass...)
+	answer = append(answer, ttl...)
+	answer = append(answer, rdLength...)
+	answer = append(answer, a.Data...)
+
+	return answer
+}
+
 type PacketProcessor interface {
 	Process(Answer)
+	Encode(*Answer) []byte
 }

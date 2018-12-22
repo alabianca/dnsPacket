@@ -169,6 +169,7 @@ func Encode(dnsPacket *DNSPacket) []byte {
 		packetType = DNSResponse
 	}
 
+	//header
 	packetID, _ := fromIntToBytes(uint16(dnsPacket.ID))
 	params := packetType | dnsPacket.Opcode | dnsPacket.Flags | dnsPacket.Z | dnsPacket.Rcode
 	queryParms, _ := fromIntToBytes(uint16(params))
@@ -177,15 +178,27 @@ func Encode(dnsPacket *DNSPacket) []byte {
 	nscount, _ := fromIntToBytes(uint16(dnsPacket.Nscount))
 	arcount, _ := fromIntToBytes(uint16(dnsPacket.Arcount))
 
-	packet = append(packet, packetID...)
-	packet = append(packet, queryParms...)
-	packet = append(packet, qcount...)
-	packet = append(packet, ancount...)
-	packet = append(packet, nscount...)
-	packet = append(packet, arcount...)
+	packet = append(packet, packetID...)   //2 bytes
+	packet = append(packet, queryParms...) //2 bytes
+	packet = append(packet, qcount...)     //2 bytes
+	packet = append(packet, ancount...)    //2 bytes
+	packet = append(packet, nscount...)    //2 bytes
+	packet = append(packet, arcount...)    //2 bytes
 
+	//todo: make encodeQuestion a method of the Question struct...
+	var startOfQuestions = 12
 	for _, q := range dnsPacket.Questions {
 		packet = append(packet, encodeQuestion(q)...)
+	}
+
+	for _, a := range dnsPacket.Answers {
+
+		if dnsPacket.Qdcount > 0 { //compress the answer name
+			packet = append(packet, a.Encode(startOfQuestions)...)
+		} else {
+			packet = append(packet, a.Encode(0)...)
+		}
+
 	}
 
 	return packet
@@ -291,6 +304,18 @@ func Decode(packet []byte) *DNSPacket {
 }
 
 func fromIntToBytes(num uint16) ([]byte, error) {
+	buffer := new(bytes.Buffer)
+
+	err := binary.Write(buffer, binary.BigEndian, num)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return buffer.Bytes(), nil
+}
+
+func fromUint32ToBytes(num uint32) ([]byte, error) {
 	buffer := new(bytes.Buffer)
 
 	err := binary.Write(buffer, binary.BigEndian, num)

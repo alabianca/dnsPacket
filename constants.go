@@ -62,3 +62,8 @@ const (
 	RecursionDesiredMask     = 0x100
 	RecursionAvailableMask   = 0x80
 )
+
+//1100000000000000
+const (
+	OffsetMarker = 0xC000
+)
