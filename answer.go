@@ -45,6 +45,13 @@ func (a Answer) String() string {
 	return buf.String()
 }
 
+//Processes an answer based on the type
+//and returns the correspnding type to the caller
+//for example if we process an 'A' record we get back
+//a RecrodTypeA which has a single property IPv4 address
+//But if we process a 'SRV' record we get back a RecordTypeSRV
+//which contains port,target etc.
+//all these types implement the PacketProcessor interface
 func (a *Answer) Process() PacketProcessor {
 	var p PacketProcessor
 
@@ -91,7 +98,8 @@ func (a *Answer) Encode(offset int) []byte {
 	return answer
 }
 
+//PacketProcessor interface. All recordType's should
+//implement this interface
 type PacketProcessor interface {
 	Process(Answer)
-	Encode(*Answer) []byte
 }
