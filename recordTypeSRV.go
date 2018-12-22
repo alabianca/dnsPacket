@@ -24,7 +24,7 @@ func (record *RecordTypeSRV) Process(a Answer) {
 	record.Target = target
 }
 
-func (record *RecordTypeSRV) Encode(a *Answer) []byte {
+func (record *RecordTypeSRV) Encode() []byte {
 	data := make([]byte, 0)
 
 	priorityBytes, _ := fromIntToBytes(record.Priority)
