@@ -29,22 +29,22 @@ The transaction Id of the packet (max uint16)
 
 #### DNSPacket.Opcode
 Determines the query type. Possible values are:
-       `0`: Standard Query
-       `1`: Inverse query
-       `2`: Server status request
-       `3-15`: Reserved for future use
+       * `0`: Standard Query
+       * `1`: Inverse query
+       * `2`: Server status request
+       * `3-15`: Reserved for future use
 
 #### DNSPacket.Z
 Reserved for future use. Set this field to 0
 
 #### DNSPacket.Rcode
 The response code. Possible values are:
-    `0`: No Error condition
-    `1`: Format Error
-    `2`: Server failure
-    `3`: Name Error
-    `4`: Not Implemented
-    `5`: Refused
+    * `0`: No Error condition
+    * `1`: Format Error
+    * `2`: Server failure
+    * `3`: Name Error
+    * `4`: Not Implemented
+    * `5`: Refused
 
 #### DNSPacket.Flags
 Sets the bit for the following flags: `AA` (Authoritative Answer), `TC` (Truncation), `RD` (Recursion Desired) and `RA` (Recursion Available)
