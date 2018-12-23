@@ -172,6 +172,7 @@ func Encode(dnsPacket *DNSPacket) []byte {
 	//header
 	packetID, _ := fromIntToBytes(uint16(dnsPacket.ID))
 	params := packetType | dnsPacket.Opcode | dnsPacket.Flags | dnsPacket.Z | dnsPacket.Rcode
+
 	queryParms, _ := fromIntToBytes(uint16(params))
 	qcount, _ := fromIntToBytes(uint16(dnsPacket.Qdcount))
 	ancount, _ := fromIntToBytes(uint16(dnsPacket.Ancount))
@@ -215,8 +216,8 @@ func Decode(packet []byte) *DNSPacket {
 	anCount := decodePart(packet, 6, 8)
 	nsCount := decodePart(packet, 8, 10)
 	arCount := decodePart(packet, 10, 12)
-
-	isQuery := queryParams & DNSQuery
+	fmt.Printf("Query Params: %d\n", queryParams)
+	isQuery := queryParams & DNSResponse
 	opcode := (queryParams << 1) >> 12
 	flags := queryParams & FlagsMask
 	z := (queryParams & ZMask) >> 4
