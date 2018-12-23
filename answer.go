@@ -102,4 +102,6 @@ func (a *Answer) Encode(offset int) []byte {
 //implement this interface
 type PacketProcessor interface {
 	Process(Answer)
+	Encode() []byte
+	Type() int
 }

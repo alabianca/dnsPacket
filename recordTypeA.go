@@ -25,6 +25,10 @@ func (record *RecordTypeA) Process(a Answer) {
 	record.IPv4 = buf.String()
 }
 
+func (record *RecordTypeA) Type() int {
+	return 1
+}
+
 func (record *RecordTypeA) Encode() []byte {
 	return encodeIpV4(record.IPv4)
 }

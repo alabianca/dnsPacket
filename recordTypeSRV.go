@@ -24,6 +24,10 @@ func (record *RecordTypeSRV) Process(a Answer) {
 	record.Target = target
 }
 
+func (record *RecordTypeSRV) Type() int {
+	return 33
+}
+
 func (record *RecordTypeSRV) Encode() []byte {
 	data := make([]byte, 0)
 
