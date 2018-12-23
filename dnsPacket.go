@@ -216,7 +216,6 @@ func Decode(packet []byte) *DNSPacket {
 	anCount := decodePart(packet, 6, 8)
 	nsCount := decodePart(packet, 8, 10)
 	arCount := decodePart(packet, 10, 12)
-	fmt.Printf("Query Params: %d\n", queryParams)
 	isQuery := queryParams & DNSResponse
 	opcode := (queryParams << 1) >> 12
 	flags := queryParams & FlagsMask
