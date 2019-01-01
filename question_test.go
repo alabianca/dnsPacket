@@ -1,6 +1,8 @@
 package dnsPacket
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestDecodeQname(t *testing.T) {
 
@@ -49,6 +51,42 @@ func TestEncodeQname(t *testing.T) {
 			if encoded[i] != table.out[i] {
 				t.Errorf("Fail\nGot: %b\nWant: %b\n", encoded, table.out)
 			}
+		}
+	}
+}
+
+func TestDecodeQuestion(t *testing.T) {
+	questionBytes := []byte{6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0, 0, 1, 0, 1}
+
+	qname, qtype, qclass, _ := decodeQuestion(questionBytes)
+
+	if qname != "google.com" {
+		t.Errorf("Fail\nGot: %s\nWant: %s\n", qname, "google.com")
+	}
+
+	if qtype != 1 {
+		t.Errorf("Fail\nGot: %d\n Want: %d\n", qtype, 1)
+	}
+
+	if qclass != 1 {
+		t.Errorf("Fail\nGot: %d\n Want: %d\n", qclass, 1)
+	}
+
+}
+
+func TestEncodeQuestion(t *testing.T) {
+	question := Question{
+		Qname:  "google.com",
+		Qclass: 1,
+		Qtype:  1,
+	}
+
+	questionBytes := encodeQuestion(question)
+	expectedBytes := []byte{6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0, 0, 1, 0, 1}
+
+	for i := range questionBytes {
+		if questionBytes[i] != expectedBytes[i] {
+			t.Errorf("Fail\nGot: %b\nWant: %b\n", questionBytes, expectedBytes)
 		}
 	}
 }
